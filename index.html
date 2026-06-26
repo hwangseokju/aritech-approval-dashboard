@@ -400,8 +400,8 @@ function renderTable() {
             <td><span class="badge ${STATUS_BADGE[a.status] || ''}">${STATUS_LABEL[a.status] || a.status}</span></td>
             <td>${dateFmt(a.created_at)}</td>
             <td>${dateFmt(a.decided_at)}</td>
-            <td>${a.pdf_filename
-              ? `<button class="btn-pdf" onclick="downloadPdf(${a.id}, '${a.pdf_filename}', this)">⬇ 다운로드</button>`
+            <td>${(a.status === 'IN_PROGRESS' || a.pdf_filename)
+              ? `<button class="btn-pdf" onclick="downloadPdf(${a.id}, this)">⬇ 다운로드</button>`
               : '<span style="color:#ccc;font-size:12px;">—</span>'
             }</td>
           </tr>`).join('')}
@@ -411,7 +411,7 @@ function renderTable() {
 }
 
 // ── PDF 다운로드 ────────────────────────────────────────────
-async function downloadPdf(id, filename, btn) {
+async function downloadPdf(id, btn) {
   btn.disabled = true;
   btn.textContent = '로딩중...';
   try {
@@ -423,6 +423,10 @@ async function downloadPdf(id, filename, btn) {
       alert(err.detail || 'PDF 다운로드 실패');
       return;
     }
+    const disposition = res.headers.get('content-disposition') || '';
+    const match = disposition.match(/filename[^;=\n]*=([^;\n]*)/);
+    const filename = match ? match[1].replace(/['"]/g, '').trim()
+                           : `A-${String(id).padStart(5,'0')}.pdf`;
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
