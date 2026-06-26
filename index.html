@@ -114,6 +114,14 @@
     .no-data { text-align: center; color: #aaa; padding: 32px; font-size: 14px; }
 
     .loading { text-align: center; padding: 60px; color: #aaa; }
+
+    .btn-pdf {
+      padding: 4px 10px; background: #1C3557; color: #fff;
+      border: none; border-radius: 6px; font-size: 12px; cursor: pointer;
+      white-space: nowrap; transition: background .15s;
+    }
+    .btn-pdf:hover { background: #2C5282; }
+    .btn-pdf:disabled { background: #aaa; cursor: default; }
   </style>
 </head>
 <body>
@@ -377,7 +385,7 @@ function renderTable() {
         <tr>
           <th>번호</th><th>문서종류</th><th>제목</th>
           <th>신청자</th><th>금액</th><th>상태</th>
-          <th>기안일</th><th>처리일</th>
+          <th>기안일</th><th>처리일</th><th>PDF</th>
         </tr>
       </thead>
       <tbody>
@@ -392,10 +400,44 @@ function renderTable() {
             <td><span class="badge ${STATUS_BADGE[a.status] || ''}">${STATUS_LABEL[a.status] || a.status}</span></td>
             <td>${dateFmt(a.created_at)}</td>
             <td>${dateFmt(a.decided_at)}</td>
+            <td>${a.pdf_filename
+              ? `<button class="btn-pdf" onclick="downloadPdf(${a.id}, '${a.pdf_filename}', this)">⬇ 다운로드</button>`
+              : '<span style="color:#ccc;font-size:12px;">—</span>'
+            }</td>
           </tr>`).join('')}
       </tbody>
     </table>`;
   document.getElementById('table-wrap').innerHTML = html;
+}
+
+// ── PDF 다운로드 ────────────────────────────────────────────
+async function downloadPdf(id, filename, btn) {
+  btn.disabled = true;
+  btn.textContent = '로딩중...';
+  try {
+    const res = await fetch(`${API_BASE}/api/dashboard/pdf/${id}`, {
+      headers: { 'X-API-Key': getKey() }
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert(err.detail || 'PDF 다운로드 실패');
+      return;
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    alert('서버에 연결할 수 없습니다.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⬇ 다운로드';
+  }
 }
 
 // ── 초기화 ──────────────────────────────────────────────────
