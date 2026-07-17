@@ -1,4 +1,4 @@
-const CACHE = 'arium-dash-v1';
+const CACHE = 'arium-dash-v2';
 const SHELL = [
   '/aritech-approval-dashboard/',
   '/aritech-approval-dashboard/index.html',
@@ -23,12 +23,17 @@ self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
   // API 요청 → network-first (오프라인 시 캐시)
+  // POST·PDF·ZIP은 캐시하지 않음 (Cache.put은 GET만 허용 + 대용량 방지)
   if (url.hostname.includes('railway.app')) {
+    const cacheable = e.request.method === 'GET'
+      && !url.pathname.includes('/pdf');
     e.respondWith(
       fetch(e.request)
         .then(res => {
-          const clone = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, clone));
+          if (cacheable) {
+            const clone = res.clone();
+            caches.open(CACHE).then(c => c.put(e.request, clone));
+          }
           return res;
         })
         .catch(() => caches.match(e.request))

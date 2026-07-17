@@ -132,6 +132,31 @@
     }
     .btn-pdf:hover { background: #2C5282; }
     .btn-pdf:disabled { background: #aaa; cursor: default; }
+
+    .stat-card.unarch .value { color: #dd6b20; }
+    .badge-unarch { background: #feebc8; color: #9c4221; }
+
+    .bulk-row {
+      display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;
+      align-items: center; padding: 10px 12px;
+      background: #f7f8fa; border-radius: 8px;
+    }
+    .bulk-row .hint { font-size: 12px; color: #888; margin-right: 4px; }
+    .btn-bulk {
+      padding: 6px 12px; border: 1px solid #cbd5e0; background: #fff;
+      border-radius: 6px; font-size: 12px; cursor: pointer;
+      transition: background .15s; white-space: nowrap;
+    }
+    .btn-bulk:hover { background: #edf2f7; }
+    .btn-bulk.primary { background: #1C3557; color: #fff; border-color: #1C3557; }
+    .btn-bulk.primary:hover { background: #2C5282; }
+    .btn-bulk:disabled { opacity: .5; cursor: default; }
+    .btn-mini {
+      padding: 2px 7px; border: 1px solid #cbd5e0; background: #fff;
+      border-radius: 5px; font-size: 11px; cursor: pointer; white-space: nowrap;
+    }
+    .btn-mini:hover { background: #edf2f7; }
+    td.center, th.center { text-align: center; }
   </style>
 </head>
 <body>
@@ -167,6 +192,7 @@
       <div class="stat-card reject"> <div class="label">❌ 반려</div>    <div class="value" id="s-reject">—</div></div>
       <div class="stat-card return_"><div class="label">↩️ 보완요청</div><div class="value" id="s-return">—</div></div>
       <div class="stat-card cancel"> <div class="label">🚫 취소/정지</div><div class="value" id="s-cancel">—</div></div>
+      <div class="stat-card unarch"> <div class="label">📂 미정리</div>  <div class="value" id="s-unarch">—</div></div>
     </div>
 
     <!-- 차트 -->
@@ -201,8 +227,22 @@
         <select id="filter-doctype" onchange="renderTable()">
           <option value="">전체 문서종류</option>
         </select>
+        <select id="filter-archive" onchange="renderTable()">
+          <option value="">정리 상태 전체</option>
+          <option value="unarchived">📂 미정리 (완료·미보관)</option>
+          <option value="archived">🗂 정리됨</option>
+        </select>
         <input type="text" id="filter-search" placeholder="이름 / 제목 검색"
                oninput="renderTable()" style="min-width:160px;" />
+      </div>
+      <div class="bulk-row">
+        <span class="hint">📂 보관 정리:</span>
+        <button class="btn-bulk" onclick="selectAllUnarchived()">☑ 미정리 전체선택</button>
+        <button class="btn-bulk" onclick="clearSelection()">선택 해제</button>
+        <button class="btn-bulk primary" id="btn-zip" onclick="downloadZip()">
+          ⬇ 선택 ZIP 다운로드 (<span id="sel-count">0</span>건)</button>
+        <button class="btn-bulk" onclick="bulkArchive(true)">✔ 선택 정리완료 표시</button>
+        <button class="btn-bulk" onclick="bulkArchive(false)">↩ 선택 정리 취소</button>
       </div>
       <div id="table-wrap"><div class="no-data">불러오는 중...</div></div>
     </div>
@@ -277,7 +317,11 @@ async function loadAll() {
     const stats = await statsRes.json();
     const list  = await listRes.json();
     allApprovals = list.approvals || [];
+    // 선택 목록에서 사라진 항목 정리
+    const validIds = new Set(allApprovals.map(a => a.id));
+    [...selected].forEach(id => { if (!validIds.has(id)) selected.delete(id); });
     renderStats(stats);
+    renderUnarchived();
     renderCharts(stats);
     renderDocTypeFilter();
     renderTable();
@@ -297,6 +341,16 @@ function renderStats(s) {
   document.getElementById('s-return').textContent = s.by_status?.RETURNED    ?? 0;
   const cancel = (s.by_status?.CANCELLED ?? 0) + (s.by_status?.HALTED ?? 0);
   document.getElementById('s-cancel').textContent = cancel;
+}
+
+// ── 정리(보관) 상태 ─────────────────────────────────────────
+function isUnarchived(a) {
+  return a.status === 'IN_PROGRESS' && !a.archived_at;
+}
+
+function renderUnarchived() {
+  document.getElementById('s-unarch').textContent =
+    allApprovals.filter(isUnarchived).length;
 }
 
 // ── 차트 ───────────────────────────────────────────────────
@@ -367,15 +421,46 @@ function renderDocTypeFilter() {
   });
 }
 
+// ── 선택 관리 ───────────────────────────────────────────────
+let selected = new Set();
+
+function hasPdf(a) { return a.status === 'IN_PROGRESS' || a.pdf_filename; }
+
+function toggleSel(id, checked) {
+  if (checked) selected.add(id); else selected.delete(id);
+  updateSelCount();
+}
+
+function updateSelCount() {
+  document.getElementById('sel-count').textContent = selected.size;
+}
+
+function selectAllUnarchived() {
+  allApprovals.filter(isUnarchived).forEach(a => selected.add(a.id));
+  updateSelCount();
+  // 미정리 필터로 전환해서 선택된 것들을 바로 보여줌
+  document.getElementById('filter-archive').value = 'unarchived';
+  renderTable();
+}
+
+function clearSelection() {
+  selected.clear();
+  updateSelCount();
+  renderTable();
+}
+
 // ── 결재 목록 테이블 ────────────────────────────────────────
 function renderTable() {
   const statusF  = document.getElementById('filter-status').value;
   const doctypeF = document.getElementById('filter-doctype').value;
+  const archiveF = document.getElementById('filter-archive').value;
   const searchF  = document.getElementById('filter-search').value.toLowerCase();
 
   const rows = allApprovals.filter(a => {
     if (statusF  && a.status   !== statusF)  return false;
     if (doctypeF && a.doc_type !== doctypeF) return false;
+    if (archiveF === 'unarchived' && !isUnarchived(a)) return false;
+    if (archiveF === 'archived'   && !a.archived_at)   return false;
     if (searchF && !`${a.title}${a.applicant_name}`.toLowerCase().includes(searchF)) return false;
     return true;
   });
@@ -389,18 +474,35 @@ function renderTable() {
   const amtFmt = v => v ? `${Number(v).toLocaleString()}원` : '—';
   const dateFmt = v => v ? v.slice(0,10) : '—';
 
+  const archCell = a => {
+    if (a.archived_at)
+      return `🗂 ${a.archived_at.slice(0,10)}
+        <button class="btn-mini" title="정리 취소"
+          onclick="archiveOne(${a.id}, false)">↩</button>`;
+    if (a.status === 'IN_PROGRESS')
+      return `<span class="badge badge-unarch">미정리</span>
+        <button class="btn-mini" title="정리완료 표시"
+          onclick="archiveOne(${a.id}, true)">✔</button>`;
+    return '<span style="color:#ccc;">—</span>';
+  };
+
   const html = `
     <table>
       <thead>
         <tr>
+          <th class="center">☑</th>
           <th>번호</th><th>문서종류</th><th>제목</th>
           <th>신청자</th><th>금액</th><th>상태</th>
-          <th>기안일</th><th>처리일</th><th>PDF</th>
+          <th>기안일</th><th>처리일</th><th>PDF</th><th>정리</th>
         </tr>
       </thead>
       <tbody>
         ${rows.map(a => `
           <tr>
+            <td class="center">${hasPdf(a)
+              ? `<input type="checkbox" ${selected.has(a.id) ? 'checked' : ''}
+                   onchange="toggleSel(${a.id}, this.checked)">`
+              : ''}</td>
             <td>A-${String(a.id).padStart(5,'0')}</td>
             <td>${a.doc_type || '—'}</td>
             <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
@@ -410,14 +512,103 @@ function renderTable() {
             <td><span class="badge ${STATUS_BADGE[a.status] || ''}">${STATUS_LABEL[a.status] || a.status}</span></td>
             <td>${dateFmt(a.created_at)}</td>
             <td>${dateFmt(a.decided_at)}</td>
-            <td>${(a.status === 'IN_PROGRESS' || a.pdf_filename)
+            <td>${hasPdf(a)
               ? `<button class="btn-pdf" onclick="downloadPdf(${a.id}, this)">⬇ 다운로드</button>`
               : '<span style="color:#ccc;font-size:12px;">—</span>'
             }</td>
+            <td style="white-space:nowrap;">${archCell(a)}</td>
           </tr>`).join('')}
       </tbody>
     </table>`;
   document.getElementById('table-wrap').innerHTML = html;
+  updateSelCount();
+}
+
+// ── 정리완료 표시 / ZIP 일괄 다운로드 ───────────────────────
+async function postArchive(ids, archived) {
+  const res = await fetch(`${API_BASE}/api/dashboard/archive`, {
+    method: 'POST',
+    headers: { 'X-API-Key': getKey(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids, archived }),
+  });
+  if (!res.ok) throw new Error('archive 실패');
+  return res.json();
+}
+
+async function archiveOne(id, archived) {
+  try {
+    await postArchive([id], archived);
+    const a = allApprovals.find(x => x.id === id);
+    if (a) a.archived_at = archived ? new Date().toISOString() : null;
+    renderUnarchived();
+    renderTable();
+  } catch (e) {
+    alert('정리 상태 변경 실패');
+  }
+}
+
+async function bulkArchive(archived) {
+  if (!selected.size) { alert('먼저 항목을 선택하세요.'); return; }
+  const ids = [...selected];
+  try {
+    await postArchive(ids, archived);
+    ids.forEach(id => {
+      const a = allApprovals.find(x => x.id === id);
+      if (a) a.archived_at = archived ? new Date().toISOString() : null;
+    });
+    selected.clear();
+    renderUnarchived();
+    renderTable();
+  } catch (e) {
+    alert('정리 상태 변경 실패');
+  }
+}
+
+async function downloadZip() {
+  if (!selected.size) { alert('먼저 항목을 선택하세요.\n(☑ 미정리 전체선택을 누르면 한 번에 선택됩니다)'); return; }
+  const ids = [...selected];
+  const btn = document.getElementById('btn-zip');
+  btn.disabled = true;
+  const orig = btn.innerHTML;
+  btn.textContent = `ZIP 생성중... (${ids.length}건)`;
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/dashboard/pdf-zip?ids=${ids.join(',')}`,
+      { headers: { 'X-API-Key': getKey() } });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert(err.detail || 'ZIP 다운로드 실패');
+      return;
+    }
+    const disposition = res.headers.get('content-disposition') || '';
+    const match = disposition.match(/filename[^;=\n]*=([^;\n]*)/);
+    const filename = match ? match[1].replace(/['"]/g, '').trim()
+                           : 'approvals.zip';
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    // 다운로드 성공 → 정리완료 표시 제안
+    if (confirm(`${ids.length}건 다운로드 완료.\n모두 '정리완료'로 표시할까요?\n(내 폴더에 저장을 마친 뒤 누르는 것을 권장)`)) {
+      await postArchive(ids, true);
+      ids.forEach(id => {
+        const x = allApprovals.find(v => v.id === id);
+        if (x) x.archived_at = new Date().toISOString();
+      });
+      selected.clear();
+      renderUnarchived();
+      renderTable();
+    }
+  } catch (e) {
+    alert('서버에 연결할 수 없습니다.');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = orig;
+    updateSelCount();
+  }
 }
 
 // ── PDF 다운로드 ────────────────────────────────────────────
