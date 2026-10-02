@@ -3,171 +3,213 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>아리텍바이오 결재 현황</title>
+  <title>(주)아리텍바이오 전자결재 현황</title>
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#1C3557" />
+  <meta name="theme-color" content="#1F3A5F" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="결재대시보드" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="전자결재" />
   <link rel="apple-touch-icon" href="icon-192.png" />
 
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
+    /* ── 디자인 토큰: 결재 PDF와 같은 결 — 흰 바탕, 얇은 선, 남색 강조 하나 ── */
+    :root {
+      --bg: #F4F5F7;
+      --surface: #FFFFFF;
+      --text: #1A1A1A;
+      --muted: #6B7280;
+      --faint: #9CA3AF;
+      --line: #E3E6EB;
+      --line-strong: #CBD0D8;
+      --head: #F7F8FA;
+      --accent: #1F3A5F;          /* 남색 — 주요 버튼·강조 */
+      --accent-hover: #2B4D7A;
+      --stamp: #C8102E;           /* 도장색 — 반려에만 */
+      /* 상태 색 (차분한 톤) */
+      --st-prog: #B7791F;  --st-prog-bg: #FDF6E3;
+      --st-done: #2F6B4F;  --st-done-bg: #EAF4EE;
+      --st-rej:  #C8102E;  --st-rej-bg:  #FCECEE;
+      --st-ret:  #5B5B8F;  --st-ret-bg:  #EFEFF7;
+      --st-off:  #6B7280;  --st-off-bg:  #F1F2F4;
+      --st-unarch: #B45309;
+      --radius: 6px;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Pretendard', 'Apple SD Gothic Neo', sans-serif; background: #f0f2f5; color: #1a1a2e; }
+    body {
+      font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+      background: var(--bg); color: var(--text);
+      font-size: 14px; line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    .num { font-variant-numeric: tabular-nums; }
 
-    /* ── 로그인 화면 ── */
+    /* ── 로그인 ── */
     #login-screen {
       display: flex; align-items: center; justify-content: center;
-      height: 100vh; background: #1C3557;
+      min-height: 100vh; padding: 24px;
     }
     .login-box {
-      background: #fff; border-radius: 16px; padding: 40px 48px;
-      text-align: center; width: 340px; box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: 10px; padding: 40px 36px; width: 100%; max-width: 360px;
     }
-    .login-box h1 { font-size: 20px; font-weight: 700; color: #1C3557; margin-bottom: 4px; }
-    .login-box p  { font-size: 13px; color: #666; margin-bottom: 24px; }
+    .login-box .org { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    .login-box h1 {
+      font-size: 22px; font-weight: 700; letter-spacing: -0.01em;
+      padding-bottom: 18px; margin-bottom: 22px;
+      border-bottom: 2px solid var(--text);
+    }
+    .login-box label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
     .login-box input {
-      width: 100%; padding: 10px 14px; border: 1px solid #ddd;
-      border-radius: 8px; font-size: 14px; margin-bottom: 12px; outline: none;
+      width: 100%; padding: 11px 12px; border: 1px solid var(--line-strong);
+      border-radius: var(--radius); font-size: 14px; margin-bottom: 14px;
+      outline: none; font-family: inherit;
     }
-    .login-box input:focus { border-color: #2C5282; }
-    .login-box button {
-      width: 100%; padding: 11px; background: #1C3557; color: #fff;
-      border: none; border-radius: 8px; font-size: 15px; font-weight: 600;
-      cursor: pointer; transition: background .2s;
-    }
-    .login-box button:hover { background: #2C5282; }
-    .login-error { color: #e53e3e; font-size: 13px; margin-top: 8px; display: none; }
+    .login-box input:focus { border-color: var(--accent); }
+    .login-box button { width: 100%; }
+    .login-error { color: var(--stamp); font-size: 13px; margin-top: 10px; display: none; }
 
-    /* ── 메인 대시보드 ── */
+    /* ── 버튼 ── */
+    .btn {
+      display: inline-block; text-align: center;
+      padding: 7px 14px; border: 1px solid var(--line-strong);
+      background: var(--surface); color: var(--text);
+      border-radius: var(--radius); font-size: 13px; font-family: inherit;
+      cursor: pointer; white-space: nowrap; transition: background .12s, border-color .12s;
+    }
+    .btn:hover { background: var(--head); border-color: var(--faint); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+    .btn:disabled { opacity: .5; cursor: default; }
+    .btn.sm { padding: 3px 9px; font-size: 12px; }
+    .btn.link { border: none; background: none; color: var(--accent); padding: 3px 6px; }
+    .btn.link:hover { text-decoration: underline; background: none; }
+
+    /* ── 머리말 ── */
     #dashboard { display: none; }
-
     header {
-      background: #1C3557; color: #fff;
-      padding: 16px 32px; display: flex; align-items: center; justify-content: space-between;
+      background: var(--surface); border-bottom: 1px solid var(--line);
+      padding: 14px 32px; display: flex; align-items: center;
+      justify-content: space-between; gap: 16px; flex-wrap: wrap;
     }
-    header h1 { font-size: 18px; font-weight: 700; }
-    header span { font-size: 13px; opacity: .7; }
-    .refresh-btn {
-      background: rgba(255,255,255,.15); border: none; color: #fff;
-      padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px;
+    header .org { font-size: 12px; color: var(--muted); }
+    header h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+    header .tools { display: flex; align-items: center; gap: 8px; }
+    #last-updated { font-size: 12px; color: var(--muted); margin-right: 4px; }
+
+    main { padding: 24px 32px 40px; max-width: 1320px; margin: 0 auto; }
+    .section-title {
+      font-size: 13px; font-weight: 600; color: var(--muted);
+      margin: 0 0 10px; letter-spacing: .02em;
     }
-    .refresh-btn:hover { background: rgba(255,255,255,.25); }
 
-    main { padding: 28px 32px; max-width: 1280px; margin: 0 auto; }
-
-    /* ── 상태 카드 ── */
+    /* ── 요약 숫자 ── */
     .stat-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 14px; margin-bottom: 28px;
+      display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 10px; margin-bottom: 24px;
+    }
+    @media (max-width: 900px) {
+      .stat-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
     }
     .stat-card {
-      background: #fff; border-radius: 12px; padding: 18px 20px;
-      box-shadow: 0 2px 8px rgba(0,0,0,.06);
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 14px 16px;
+      border-top: 3px solid var(--line-strong);
     }
-    .stat-card .label { font-size: 12px; color: #888; margin-bottom: 8px; }
-    .stat-card .value { font-size: 28px; font-weight: 700; }
-    .stat-card.total   .value { color: #1C3557; }
-    .stat-card.prog    .value { color: #d69e2e; }
-    .stat-card.done    .value { color: #2f855a; }
-    .stat-card.reject  .value { color: #c53030; }
-    .stat-card.return_ .value { color: #6b46c1; }
-    .stat-card.cancel  .value { color: #718096; }
+    .stat-card .label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+    .stat-card .value { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .stat-card.total   { border-top-color: var(--accent); }
+    .stat-card.prog    { border-top-color: var(--st-prog); }
+    .stat-card.done    { border-top-color: var(--st-done); }
+    .stat-card.reject  { border-top-color: var(--st-rej); }
+    .stat-card.return_ { border-top-color: var(--st-ret); }
+    .stat-card.cancel  { border-top-color: var(--st-off); }
+    .stat-card.unarch  { border-top-color: var(--st-unarch); }
+    .stat-card.unarch .value { color: var(--st-unarch); }
 
-    /* ── 차트 영역 ── */
+    /* ── 차트 ── */
     .chart-grid {
-      display: grid; grid-template-columns: 1fr 2fr 1fr;
-      gap: 18px; margin-bottom: 28px;
+      display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 12px; margin-bottom: 24px;
     }
-    @media (max-width: 900px) { .chart-grid { grid-template-columns: 1fr; } }
-    .chart-card {
-      background: #fff; border-radius: 12px; padding: 20px 24px;
-      box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    /* 그리드 칸의 기본 min-width:auto 때문에 차트(canvas)가 칸을 밀어내
+       오른쪽이 잘리고 가로 스크롤이 생긴다 → 0으로 */
+    .chart-grid > *, .stat-grid > * { min-width: 0; }
+    @media (max-width: 960px) { .chart-grid { grid-template-columns: 1fr; } }
+    .panel {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 16px 18px;
     }
-    .chart-card h3 { font-size: 14px; font-weight: 600; color: #444; margin-bottom: 16px; }
+    .panel h3 {
+      font-size: 13px; font-weight: 600; margin-bottom: 12px;
+      padding-bottom: 8px; border-bottom: 1px solid var(--line);
+    }
     .chart-wrap { position: relative; height: 220px; }
 
     /* ── 결재 목록 ── */
-    .list-card {
-      background: #fff; border-radius: 12px; padding: 20px 24px;
-      box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    .toolbar { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
+    .toolbar select, .toolbar input {
+      padding: 7px 10px; border: 1px solid var(--line-strong); border-radius: var(--radius);
+      font-size: 13px; font-family: inherit; background: var(--surface); outline: none;
     }
-    .list-card h3 { font-size: 14px; font-weight: 600; color: #444; margin-bottom: 16px; }
-    .filter-row { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
-    .filter-row select, .filter-row input {
-      padding: 6px 10px; border: 1px solid #ddd; border-radius: 6px;
-      font-size: 13px; outline: none;
-    }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th {
-      background: #f7f8fa; padding: 10px 12px; text-align: left;
-      font-weight: 600; color: #555; border-bottom: 1px solid #eee;
-    }
-    td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: #fafafa; }
-    .badge {
-      display: inline-block; padding: 2px 8px; border-radius: 12px;
-      font-size: 11px; font-weight: 600; white-space: nowrap;
-    }
-    .badge-prog    { background: #fefcbf; color: #92400e; }
-    .badge-done    { background: #c6f6d5; color: #276749; }
-    .badge-reject  { background: #fed7d7; color: #9b2c2c; }
-    .badge-return_ { background: #e9d8fd; color: #553c9a; }
-    .badge-halt    { background: #fed7d7; color: #9b2c2c; }
-    .badge-cancel  { background: #e2e8f0; color: #4a5568; }
-    .no-data { text-align: center; color: #aaa; padding: 32px; font-size: 14px; }
-
-    .loading { text-align: center; padding: 60px; color: #aaa; }
-
-    .btn-pdf {
-      padding: 4px 10px; background: #1C3557; color: #fff;
-      border: none; border-radius: 6px; font-size: 12px; cursor: pointer;
-      white-space: nowrap; transition: background .15s;
-    }
-    .btn-pdf:hover { background: #2C5282; }
-    .btn-pdf:disabled { background: #aaa; cursor: default; }
-
-    .stat-card.unarch .value { color: #dd6b20; }
-    .badge-unarch { background: #feebc8; color: #9c4221; }
-
+    .toolbar select:focus, .toolbar input:focus { border-color: var(--accent); }
     .bulk-row {
-      display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;
-      align-items: center; padding: 10px 12px;
-      background: #f7f8fa; border-radius: 8px;
+      display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;
+      padding: 10px 12px; background: var(--head);
+      border: 1px solid var(--line); border-radius: var(--radius);
     }
-    .bulk-row .hint { font-size: 12px; color: #888; margin-right: 4px; }
-    .btn-bulk {
-      padding: 6px 12px; border: 1px solid #cbd5e0; background: #fff;
-      border-radius: 6px; font-size: 12px; cursor: pointer;
-      transition: background .15s; white-space: nowrap;
+    .bulk-row .hint { font-size: 12px; color: var(--muted); margin-right: 4px; font-weight: 600; }
+
+    #table-wrap { overflow-x: auto; }
+    table { width: 100%; min-width: 1040px; border-collapse: collapse; font-size: 13px; }
+    thead th {
+      background: var(--head); color: var(--muted); font-weight: 600; font-size: 12px;
+      text-align: left; padding: 9px 10px; white-space: nowrap;
+      border-top: 1px solid var(--line-strong); border-bottom: 1px solid var(--line-strong);
     }
-    .btn-bulk:hover { background: #edf2f7; }
-    .btn-bulk.primary { background: #1C3557; color: #fff; border-color: #1C3557; }
-    .btn-bulk.primary:hover { background: #2C5282; }
-    .btn-bulk:disabled { opacity: .5; cursor: default; }
-    .btn-mini {
-      padding: 2px 7px; border: 1px solid #cbd5e0; background: #fff;
-      border-radius: 5px; font-size: 11px; cursor: pointer; white-space: nowrap;
-    }
-    .btn-mini:hover { background: #edf2f7; }
+    tbody td { padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+    tbody tr:hover td { background: #FAFBFC; }
     td.center, th.center { text-align: center; }
+    td.right, th.right { text-align: right; }
+    td.docno { font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
+    td.title { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    td.nowrap, td.right { white-space: nowrap; }
+    td.date { font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
+    .dash { color: var(--faint); }
+
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      font-size: 12px; font-weight: 600; white-space: nowrap; border: 1px solid transparent;
+    }
+    .badge-prog    { background: var(--st-prog-bg); color: var(--st-prog); border-color: #F1E3BF; }
+    .badge-done    { background: var(--st-done-bg); color: var(--st-done); border-color: #CFE6D8; }
+    .badge-reject  { background: var(--st-rej-bg);  color: var(--st-rej);  border-color: #F6CDD3; }
+    .badge-return_ { background: var(--st-ret-bg);  color: var(--st-ret);  border-color: #DADAEA; }
+    .badge-halt    { background: var(--st-off-bg);  color: var(--st-off);  border-color: var(--line); }
+    .badge-cancel  { background: var(--st-off-bg);  color: var(--st-off);  border-color: var(--line); }
+    .badge-unarch  { background: #FFF4E5; color: var(--st-unarch); border-color: #F5D9B5; }
+
+    .no-data { text-align: center; color: var(--faint); padding: 40px; font-size: 14px; }
+
+    @media (max-width: 640px) {
+      header { padding: 12px 16px; }
+      main { padding: 16px 12px 32px; }
+    }
   </style>
 </head>
 <body>
 
-<!-- ── 로그인 화면 ── -->
+<!-- ── 로그인 ── -->
 <div id="login-screen">
   <div class="login-box">
-    <h1>㈜아리텍바이오</h1>
-    <p>결재 현황 대시보드</p>
-    <input type="password" id="api-key-input" placeholder="비밀번호 입력" />
-    <button onclick="doLogin()">로그인</button>
+    <div class="org">(주)아리텍바이오</div>
+    <h1>전자결재 현황</h1>
+    <label for="api-key-input">접속 비밀번호</label>
+    <input type="password" id="api-key-input" placeholder="비밀번호를 입력하세요" />
+    <button class="btn primary" onclick="doLogin()">로그인</button>
     <div class="login-error" id="login-error">비밀번호가 올바르지 않습니다.</div>
   </div>
 </div>
@@ -175,74 +217,75 @@
 <!-- ── 대시보드 ── -->
 <div id="dashboard">
   <header>
-    <h1>㈜아리텍바이오 결재 현황</h1>
-    <div style="display:flex;align-items:center;gap:12px;">
+    <div>
+      <div class="org">(주)아리텍바이오</div>
+      <h1>전자결재 현황</h1>
+    </div>
+    <div class="tools">
       <span id="last-updated">—</span>
-      <button class="refresh-btn" onclick="loadAll()">↻ 새로고침</button>
-      <button class="refresh-btn" onclick="doLogout()">로그아웃</button>
+      <button class="btn" onclick="loadAll()">새로고침</button>
+      <button class="btn" onclick="doLogout()">로그아웃</button>
     </div>
   </header>
 
   <main>
-    <!-- 통계 카드 -->
+    <div class="section-title">요약</div>
     <div class="stat-grid">
-      <div class="stat-card total">  <div class="label">전체</div>      <div class="value" id="s-total">—</div></div>
-      <div class="stat-card prog">   <div class="label">⏳ 진행중</div>  <div class="value" id="s-prog">—</div></div>
-      <div class="stat-card done">   <div class="label">✅ 완료</div>    <div class="value" id="s-done">—</div></div>
-      <div class="stat-card reject"> <div class="label">❌ 반려</div>    <div class="value" id="s-reject">—</div></div>
-      <div class="stat-card return_"><div class="label">↩️ 보완요청</div><div class="value" id="s-return">—</div></div>
-      <div class="stat-card cancel"> <div class="label">🚫 취소/정지</div><div class="value" id="s-cancel">—</div></div>
-      <div class="stat-card unarch"> <div class="label">📂 미정리</div>  <div class="value" id="s-unarch">—</div></div>
+      <div class="stat-card total">  <div class="label">전체</div>       <div class="value" id="s-total">—</div></div>
+      <div class="stat-card prog">   <div class="label">진행 중</div>    <div class="value" id="s-prog">—</div></div>
+      <div class="stat-card done">   <div class="label">결재 완료</div>  <div class="value" id="s-done">—</div></div>
+      <div class="stat-card reject"> <div class="label">반려</div>       <div class="value" id="s-reject">—</div></div>
+      <div class="stat-card return_"><div class="label">보완요청</div>   <div class="value" id="s-return">—</div></div>
+      <div class="stat-card cancel"> <div class="label">취소·정지</div>  <div class="value" id="s-cancel">—</div></div>
+      <div class="stat-card unarch"> <div class="label">미정리 (보관 전)</div><div class="value" id="s-unarch">—</div></div>
     </div>
 
-    <!-- 차트 -->
     <div class="chart-grid">
-      <div class="chart-card">
+      <div class="panel">
         <h3>상태별 비율</h3>
         <div class="chart-wrap"><canvas id="chart-status"></canvas></div>
       </div>
-      <div class="chart-card">
-        <h3>월별 결재 건수</h3>
+      <div class="panel">
+        <h3>월별 기안 건수</h3>
         <div class="chart-wrap"><canvas id="chart-monthly"></canvas></div>
       </div>
-      <div class="chart-card">
-        <h3>신청자별</h3>
+      <div class="panel">
+        <h3>기안자별 건수</h3>
         <div class="chart-wrap"><canvas id="chart-applicant"></canvas></div>
       </div>
     </div>
 
-    <!-- 결재 목록 -->
-    <div class="list-card">
-      <h3>결재 목록</h3>
-      <div class="filter-row">
+    <div class="panel">
+      <h3>결재 문서 목록</h3>
+      <div class="toolbar">
         <select id="filter-status" onchange="renderTable()">
-          <option value="">전체 상태</option>
-          <option value="PROGRESS">⏳ 진행중</option>
-          <option value="IN_PROGRESS">✅ 완료</option>
-          <option value="REJECTED">❌ 반려</option>
-          <option value="RETURNED">↩️ 보완요청</option>
-          <option value="CANCELLED">🚫 취소</option>
-          <option value="HALTED">⛔ 정지</option>
+          <option value="">상태 전체</option>
+          <option value="PROGRESS">진행 중</option>
+          <option value="IN_PROGRESS">결재 완료</option>
+          <option value="REJECTED">반려</option>
+          <option value="RETURNED">보완요청</option>
+          <option value="CANCELLED">취소</option>
+          <option value="HALTED">정지</option>
         </select>
         <select id="filter-doctype" onchange="renderTable()">
-          <option value="">전체 문서종류</option>
+          <option value="">문서종류 전체</option>
         </select>
         <select id="filter-archive" onchange="renderTable()">
-          <option value="">정리 상태 전체</option>
-          <option value="unarchived">📂 미정리 (완료·미보관)</option>
-          <option value="archived">🗂 정리됨</option>
+          <option value="">보관 상태 전체</option>
+          <option value="unarchived">미정리 (완료·보관 전)</option>
+          <option value="archived">정리 완료</option>
         </select>
-        <input type="text" id="filter-search" placeholder="이름 / 제목 검색"
-               oninput="renderTable()" style="min-width:160px;" />
+        <input type="text" id="filter-search" placeholder="기안자 · 제목 검색"
+               oninput="renderTable()" style="min-width:180px;" />
       </div>
       <div class="bulk-row">
-        <span class="hint">📂 보관 정리:</span>
-        <button class="btn-bulk" onclick="selectAllUnarchived()">☑ 미정리 전체선택</button>
-        <button class="btn-bulk" onclick="clearSelection()">선택 해제</button>
-        <button class="btn-bulk primary" id="btn-zip" onclick="downloadZip()">
-          ⬇ 선택 ZIP 다운로드 (<span id="sel-count">0</span>건)</button>
-        <button class="btn-bulk" onclick="bulkArchive(true)">✔ 선택 정리완료 표시</button>
-        <button class="btn-bulk" onclick="bulkArchive(false)">↩ 선택 정리 취소</button>
+        <span class="hint">보관 정리</span>
+        <button class="btn" onclick="selectAllUnarchived()">미정리 전체 선택</button>
+        <button class="btn" onclick="clearSelection()">선택 해제</button>
+        <button class="btn primary" id="btn-zip" onclick="downloadZip()">
+          선택 PDF 묶음 다운로드 (<span id="sel-count">0</span>건)</button>
+        <button class="btn" onclick="bulkArchive(true)">선택 정리 완료 표시</button>
+        <button class="btn" onclick="bulkArchive(false)">선택 정리 취소</button>
       </div>
       <div id="table-wrap"><div class="no-data">불러오는 중...</div></div>
     </div>
@@ -255,13 +298,34 @@ let allApprovals = [];
 let charts = {};
 
 const STATUS_LABEL = {
-  PROGRESS:    '⏳ 진행중',
-  IN_PROGRESS: '✅ 완료',
-  REJECTED:    '❌ 반려',
-  RETURNED:    '↩️ 보완요청',
-  HALTED:      '⛔ 정지',
-  CANCELLED:   '🚫 취소',
+  PROGRESS:    '진행 중',
+  IN_PROGRESS: '결재 완료',
+  REJECTED:    '반려',
+  RETURNED:    '보완요청',
+  HALTED:      '정지',
+  CANCELLED:   '취소',
 };
+// 상태별 색 — 차트와 배지가 같은 색을 쓰도록 상태 키로 고정
+// (예전엔 차트 색을 순서대로 배열해서 상태 순서가 바뀌면 색이 어긋났다)
+const STATUS_COLOR = {
+  PROGRESS: '#B7791F', IN_PROGRESS: '#2F6B4F', REJECTED: '#C8102E',
+  RETURNED: '#5B5B8F', HALTED: '#9CA3AF', CANCELLED: '#C4C8CE',
+};
+const ACCENT = '#1F3A5F';
+
+// 서버에서 온 글자를 표에 넣기 전 이스케이프 — 제목에 < 같은 글자가 있으면
+// 표가 깨지던 문제 방지
+function esc(v) {
+  return String(v ?? '').replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+if (window.Chart) {
+  Chart.defaults.font.family = "'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+  Chart.defaults.font.size = 12;
+  Chart.defaults.color = '#6B7280';
+  Chart.defaults.borderColor = '#E3E6EB';
+}
 const STATUS_BADGE = {
   PROGRESS:    'badge-prog',
   IN_PROGRESS: 'badge-done',
@@ -326,7 +390,7 @@ async function loadAll() {
     renderDocTypeFilter();
     renderTable();
     document.getElementById('last-updated').textContent =
-      '업데이트: ' + new Date().toLocaleTimeString('ko-KR');
+      '최종 갱신 ' + new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
   } catch (e) {
     console.error(e);
   }
@@ -360,14 +424,16 @@ function renderCharts(s) {
     labels: Object.keys(s.by_status || {}).map(k => STATUS_LABEL[k] || k),
     datasets: [{
       data: Object.values(s.by_status || {}),
-      backgroundColor: ['#ECC94B','#48BB78','#FC8181','#B794F4','#FC8181','#A0AEC0'],
+      backgroundColor: Object.keys(s.by_status || {}).map(k => STATUS_COLOR[k] || '#9CA3AF'),
       borderWidth: 2, borderColor: '#fff',
     }]
   };
   if (charts.status) charts.status.destroy();
   charts.status = new Chart(document.getElementById('chart-status'), {
     type: 'doughnut', data: statusData,
-    options: { plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } },
+    options: { cutout: '62%',
+               plugins: { legend: { position: 'bottom',
+                 labels: { boxWidth: 10, boxHeight: 10, padding: 12 } } },
                maintainAspectRatio: false }
   });
 
@@ -380,11 +446,12 @@ function renderCharts(s) {
     data: {
       labels: months,
       datasets: [{ label: '건수', data: mcounts,
-        backgroundColor: '#2C5282', borderRadius: 6 }]
+        backgroundColor: ACCENT, borderRadius: 3, maxBarThickness: 36 }]
     },
     options: {
       plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } },
+                x: { grid: { display: false } } },
       maintainAspectRatio: false,
     }
   });
@@ -398,12 +465,13 @@ function renderCharts(s) {
     data: {
       labels: names,
       datasets: [{ label: '건수', data: acnts,
-        backgroundColor: '#2f855a', borderRadius: 4 }]
+        backgroundColor: '#5B7495', borderRadius: 3, maxBarThickness: 22 }]
     },
     options: {
       indexAxis: 'y',
       plugins: { legend: { display: false } },
-      scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } },
+      scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } },
+                y: { grid: { display: false } } },
       maintainAspectRatio: false,
     }
   });
@@ -413,7 +481,7 @@ function renderCharts(s) {
 function renderDocTypeFilter() {
   const sel = document.getElementById('filter-doctype');
   const types = [...new Set(allApprovals.map(a => a.doc_type).filter(Boolean))];
-  sel.innerHTML = '<option value="">전체 문서종류</option>';
+  sel.innerHTML = '<option value="">문서종류 전체</option>';
   types.forEach(t => {
     const opt = document.createElement('option');
     opt.value = opt.textContent = t;
@@ -471,29 +539,30 @@ function renderTable() {
     return;
   }
 
-  const amtFmt = v => v ? `${Number(v).toLocaleString()}원` : '—';
-  const dateFmt = v => v ? v.slice(0,10) : '—';
+  const DASH = '<span class="dash">—</span>';
+  const amtFmt = v => v ? `${Number(v).toLocaleString()}원` : DASH;
+  const dateFmt = v => v ? v.slice(0,10) : DASH;
 
   const archCell = a => {
     if (a.archived_at)
-      return `🗂 ${a.archived_at.slice(0,10)}
-        <button class="btn-mini" title="정리 취소"
-          onclick="archiveOne(${a.id}, false)">↩</button>`;
+      return `<span class="num" style="color:var(--muted)">정리 ${a.archived_at.slice(0,10)}</span>
+        <button class="btn link" title="정리 취소"
+          onclick="archiveOne(${a.id}, false)">취소</button>`;
     if (a.status === 'IN_PROGRESS')
       return `<span class="badge badge-unarch">미정리</span>
-        <button class="btn-mini" title="정리완료 표시"
-          onclick="archiveOne(${a.id}, true)">✔</button>`;
-    return '<span style="color:#ccc;">—</span>';
+        <button class="btn link" title="정리 완료 표시"
+          onclick="archiveOne(${a.id}, true)">완료 표시</button>`;
+    return DASH;
   };
 
   const html = `
     <table>
       <thead>
         <tr>
-          <th class="center">☑</th>
-          <th>번호</th><th>문서종류</th><th>제목</th>
-          <th>신청자</th><th>금액</th><th>상태</th>
-          <th>기안일</th><th>처리일</th><th>PDF</th><th>정리</th>
+          <th class="center">선택</th>
+          <th>문서번호</th><th>문서종류</th><th>제목</th>
+          <th>기안자</th><th class="right">금액</th><th>상태</th>
+          <th>기안일</th><th>처리일</th><th>PDF</th><th>보관</th>
         </tr>
       </thead>
       <tbody>
@@ -503,18 +572,17 @@ function renderTable() {
               ? `<input type="checkbox" ${selected.has(a.id) ? 'checked' : ''}
                    onchange="toggleSel(${a.id}, this.checked)">`
               : ''}</td>
-            <td>A-${String(a.id).padStart(5,'0')}</td>
-            <td>${a.doc_type || '—'}</td>
-            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
-                title="${a.title}">${a.title || '—'}</td>
-            <td>${a.applicant_name || '—'}</td>
-            <td>${amtFmt(a.amount)}</td>
-            <td><span class="badge ${STATUS_BADGE[a.status] || ''}">${STATUS_LABEL[a.status] || a.status}</span></td>
-            <td>${dateFmt(a.created_at)}</td>
-            <td>${dateFmt(a.decided_at)}</td>
+            <td class="docno">A-${String(a.id).padStart(5,'0')}</td>
+            <td class="nowrap">${esc(a.doc_type) || DASH}</td>
+            <td class="title" title="${esc(a.title)}">${esc(a.title) || DASH}</td>
+            <td class="nowrap">${esc(a.applicant_name) || DASH}</td>
+            <td class="right num">${amtFmt(a.amount)}</td>
+            <td><span class="badge ${STATUS_BADGE[a.status] || ''}">${esc(STATUS_LABEL[a.status] || a.status)}</span></td>
+            <td class="date">${dateFmt(a.created_at)}</td>
+            <td class="date">${dateFmt(a.decided_at)}</td>
             <td>${hasPdf(a)
-              ? `<button class="btn-pdf" onclick="downloadPdf(${a.id}, this)">⬇ 다운로드</button>`
-              : '<span style="color:#ccc;font-size:12px;">—</span>'
+              ? `<button class="btn sm" onclick="downloadPdf(${a.id}, this)">다운로드</button>`
+              : DASH
             }</td>
             <td style="white-space:nowrap;">${archCell(a)}</td>
           </tr>`).join('')}
@@ -565,12 +633,12 @@ async function bulkArchive(archived) {
 }
 
 async function downloadZip() {
-  if (!selected.size) { alert('먼저 항목을 선택하세요.\n(☑ 미정리 전체선택을 누르면 한 번에 선택됩니다)'); return; }
+  if (!selected.size) { alert('먼저 문서를 선택하세요.\n(미정리 전체 선택 버튼을 누르면 한 번에 선택됩니다)'); return; }
   const ids = [...selected];
   const btn = document.getElementById('btn-zip');
   btn.disabled = true;
   const orig = btn.innerHTML;
-  btn.textContent = `ZIP 생성중... (${ids.length}건)`;
+  btn.textContent = `묶음 만드는 중… (${ids.length}건)`;
   try {
     const res = await fetch(
       `${API_BASE}/api/dashboard/pdf-zip?ids=${ids.join(',')}`,
@@ -614,7 +682,7 @@ async function downloadZip() {
 // ── PDF 다운로드 ────────────────────────────────────────────
 async function downloadPdf(id, btn) {
   btn.disabled = true;
-  btn.textContent = '로딩중...';
+  btn.textContent = '받는 중…';
   try {
     const res = await fetch(`${API_BASE}/api/dashboard/pdf/${id}`, {
       headers: { 'X-API-Key': getKey() }
@@ -641,7 +709,7 @@ async function downloadPdf(id, btn) {
     alert('서버에 연결할 수 없습니다.');
   } finally {
     btn.disabled = false;
-    btn.textContent = '⬇ 다운로드';
+    btn.textContent = '다운로드';
   }
 }
 

@@ -1,13 +1,13 @@
 {
-  "name": "아리텍바이오 결재 현황",
-  "short_name": "결재대시보드",
-  "description": "㈜아리텍바이오 결재 현황 대시보드",
+  "name": "(주)아리텍바이오 전자결재 현황",
+  "short_name": "전자결재",
+  "description": "(주)아리텍바이오 전자결재 현황",
   "start_url": "/aritech-approval-dashboard/",
   "scope": "/aritech-approval-dashboard/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "theme_color": "#1C3557",
-  "background_color": "#1C3557",
+  "theme_color": "#1F3A5F",
+  "background_color": "#F4F5F7",
   "lang": "ko",
   "icons": [
     {
